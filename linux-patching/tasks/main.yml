@@ -43,7 +43,7 @@
 #    tags: runthis
 
   - name: TASK 7 - Copying important configuration files
-    #ignore_errors: no
+    ignore_errors: no
 #    tags: runthis
     shell: "{{item}}"
     with_items:
@@ -68,7 +68,6 @@
      - /bin/netstat -rn >> /tmp/PatchingLogs/netstat-rn.out
      - /sbin/ifconfig -a >> /tmp/PatchingLogs/ifconfig-a.out
      - cp -p /etc/sysctl.conf /tmp/PatchingLogs/sysctl.out
-    # ignore_errors: yes
 
 #  - name: Compressing directory /tmp/PatchingLogs into /tmp/PatchingLogs.tgz
    # tags: runthis
@@ -79,7 +78,7 @@
 
   - name: TASK 8 - Ensure / /var /usr /opt /tmp have free space greater than 20%
    # tags: runthis
-   ignore_errors: no
+    ignore_errors: no
     assert:
      that:
      - mount.size_available > mount.size_total|float * 0.19
