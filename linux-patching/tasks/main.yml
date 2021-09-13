@@ -8,6 +8,7 @@
      charset: utf8
     delegate_to: localhost
     tags: email
+    ignore_errors: yes
 
 
   - name: TASK 2 - Check for RHN or local repository
@@ -154,3 +155,4 @@
      charset: utf8
     delegate_to: localhost
     tags: email
+    ignore_errors: yes
