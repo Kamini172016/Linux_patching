@@ -91,23 +91,24 @@
   - name: TASK 9 - YUM clean all
     command: yum clean all
 
-#  - name: Upgrade RHEL server
-#    yum:
-#     name: '*'
- #    state: latest
-  #   enablerepo: "rhel-7-server-extras-rpms/x86_64,rhel-7-server-rpms/7Server/x86_64,rhel-server-rhscl-7-rpms/7Server/x86_64"
-   #  when: ansible_distribution == 'RedHat'
+  - name: TASK 10 - Upgrade RHEL server
+    yum:
+     name: '*'
+    state: latest
+    update_cache: true
+#   enablerepo: "rhel-7-server-extras-rpms/x86_64,rhel-7-server-rpms/7Server/x86_64,rhel-server-rhscl-7-rpms/7Server/x86_64"
+  #   when: ansible_distribution == 'RedHat'
   #  tags: runthis
 
 
-  - name: TASK 10 - Upgrade RHEL server
-    yum:
-     name:
-      - kernel
-     state: latest
-     update_cache: true
-    when: ansible_distribution == 'RedHat'
-    tags: patch
+#  - name: TASK 10 - Upgrade RHEL server
+#    yum:
+#     name:
+#      - kernel
+#     state: latest
+#     update_cache: true
+#    when: ansible_distribution == 'RedHat'
+#    tags: patch
 
   - name: TASK 11 - YUM clean all
     command: yum clean all
