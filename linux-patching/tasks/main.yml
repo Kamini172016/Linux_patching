@@ -11,7 +11,7 @@
 
 
   - name: TASK 2 - Check for RHN or local repository
-    shell: yum repolist >> /dev/null 2>&1; if [ $? -eq 0 ] ; then echo "Repository found";else echo "No repository found"; fi
+    shell: if [ `yum repolist | wc -l` -gt 2 ]; then echo "Repository found";else echo "No repository found"; fi
     register: repo_status
     tags: repocheck
     ignore_errors: no
