@@ -1,0 +1,13 @@
+---
+#Ansible Playbook to perform patching on RHEL servers
+#Written By : Kamini 18/6/2021
+
+- name: LINUX SERVER PATCHING VIA ANSIBLE PLAYBOOK
+  remote_user: kamini
+  hosts: all
+#  hosts: localhost
+#  connection: local
+  become: true
+  ignore_errors: yes
+  roles:
+   - linux-patching

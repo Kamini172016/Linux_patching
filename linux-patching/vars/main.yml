@@ -1,0 +1,6 @@
+---
+# vars file for linux-patching
+
+date: "{{ lookup('pipe', 'date +%d%m%Y_%H:%M') }}"
+path:
+mount: "{{ ansible_mounts | selectattr('mount') | list | first }}"

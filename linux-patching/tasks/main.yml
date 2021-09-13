@@ -1,0 +1,157 @@
+---
+# tasks file for linux-patching
+
+  - name: TASK 1 - Sending an email while starting OS patching
+    mail:
+     subject: 'Automated OS patching for {{ ansible_hostname }} is beginning now.'
+     body: 'Automated OS patching for {{ ansible_hostname }} is beginning now.'
+     charset: utf8
+    delegate_to: localhost
+    tags: email
+
+
+  - name: TASK 2 - Check for RHN or local repository
+    shell: yum repolist >> /dev/null 2>&1; if [ $? -eq 0 ] ; then echo "Repository found";else echo "No repository found"; fi
+    register: repo_status
+    tags: repocheck
+    ignore_errors: no
+
+  - name: TASK 3 - Fail if no repository found
+    fail:
+     msg: "repository not found on {{ ansible_hostname }}"
+    when: repo_status.stdout != "Repository found"
+    tags: repocheck
+    ignore_errors: no
+
+  - name: TASK 4 - Verify web/database processes are not running
+    shell: if ps -eaf | egrep 'apache|http|nginx|mysql|postgresql|mariadb'|grep -v grep > /dev/null ;then echo 'process_running';else echo 'process_not_running';fi
+  #  ignore_errors: true
+    register: app_process_check
+#    tags: runthis
+
+  - name: TASK 5 - Decision point to start patching
+    fail: msg="{{ inventory_hostname }} have running Application. Please stop application processes first, then attempt patching."
+    when: app_process_check.stdout == "process_running"
+    ignore_errors: no
+ #   tags: runthis
+
+  - name: TASK 6 - Creating temporary directory for backup of config files
+    file:
+     path: /tmp/PatchingLogs
+     state: directory
+    ignore_errors: no
+#    tags: runthis
+
+  - name: TASK 7 - Copying important configuration files
+    ignore_errors: no
+#    tags: runthis
+    shell: "{{item}}"
+    with_items:
+#     - mkdir /tmp/PatchingLogs
+     - hostname >> /tmp/PatchingLogs/hostname.out
+     - uname -a >> /tmp/PatchingLogs/uname.out
+     - cat /etc/redhat-release >> /tmp/PatchingLogs/redhat-release.out
+     - uptime >> /tmp/PatchingLogs/uptime.out
+     - cp -p /etc/hosts /tmp/PatchingLogs/hosts.out
+     - /bin/df -h >> /tmp/PatchingLogs/df-h.out
+     - /bin/df -hl >> /tmp/PatchingLogs/df-hl.out
+     - pvs >> /tmp/PatchingLogs/pvs.out
+     - vgs >> /tmp/PatchingLogs/vgs.out
+     - lvs >> /tmp/PatchingLogs/lvs.out
+     - /bin/ls -ltr /dev/mapper >> /tmp/PatchingLogs/mapper.out
+     - fdisk -l >> /tmp/PatchingLogs/fdisk.out
+     - cp -p /etc/fstab /tmp/PatchingLogs/fstab.out
+     - cp -p /etc/exports /tmp/PatchingLogs/exports.out
+     - cat /etc/crontab >> /tmp/PatchingLogs/crontab.out
+     - cp -p /etc/passwd /tmp/PatchingLogs/passwd.out
+     - ip link show >> /tmp/PatchingLogs/ip.out
+     - /bin/netstat -in >> /tmp/PatchingLogs/netstat-in.out
+     - /bin/netstat -rn >> /tmp/PatchingLogs/netstat-rn.out
+     - /sbin/ifconfig -a >> /tmp/PatchingLogs/ifconfig-a.out
+     - cp -p /etc/sysctl.conf /tmp/PatchingLogs/sysctl.out
+
+#  - name: Compressing directory /tmp/PatchingLogs into /tmp/PatchingLogs.tgz
+   # tags: runthis
+#    community.general.archive:
+#     path: /tmp/PatchingLogs
+#     dest: /tmp/PatchingLogs.tar.gz
+#     remove: yes
+
+  - name: TASK 8 - Ensure / /var /usr /opt /tmp have free space greater than 20%
+   # tags: runthis
+    ignore_errors: no
+    assert:
+     that:
+     - mount.size_available > mount.size_total|float * 0.19
+     fail_msg: disk space has reached 80% threshold
+     success_msg: FS utilization is below threshold
+    with_items:
+     - "{{ ansible_mounts }}"
+
+  - name: TASK 9 - YUM clean all
+    command: yum clean all
+
+#  - name: Upgrade RHEL server
+#    yum:
+#     name: '*'
+ #    state: latest
+  #   enablerepo: "rhel-7-server-extras-rpms/x86_64,rhel-7-server-rpms/7Server/x86_64,rhel-server-rhscl-7-rpms/7Server/x86_64"
+   #  when: ansible_distribution == 'RedHat'
+  #  tags: runthis
+
+
+  - name: TASK 10 - Upgrade RHEL server
+    yum:
+     name:
+      - kernel
+     state: latest
+     update_cache: true
+    when: ansible_distribution == 'RedHat'
+    tags: patch
+
+  - name: TASK 11 - YUM clean all
+    command: yum clean all
+
+  - name: TASK 12 - Check if reboot required after kernel update on RedHat servers
+    shell: KERNEL_NEW=$(rpm -q --last kernel |head -1 | awk '{print $1}' | sed 's/kernel-//'); KERNEL_NOW=$(uname -r); if [[ $KERNEL_NEW != $KERNEL_NOW ]]; then echo "reboot_needed"; else echo "reboot_not_needed"; fi
+    when: ansible_distribution == "RedHat"
+    register: reboot_required
+    ignore_errors: no
+    #tags: runthis
+
+  - name: TASK 13 - Decision point to start reboot
+    ansible.builtin.debug:
+      msg="{{ inventory_hostname }} kernel is not upgraded, so reboot is not required "
+    when: reboot_required.stdout == "reboot_not_needed"
+    ignore_errors: no
+    #tags: runthis
+
+  - name: TASK 14 - Reboot RedHat systems if kernel updated
+    command: shutdown -r +1  "Rebooting RedHat Servers After Kernel Patching"
+    async: 0
+    poll: 0
+    when: reboot_required.stdout == "reboot_needed" and ansible_distribution == 'RedHat'
+    ignore_errors: no
+
+  - name: TASK 15 - Pause for 4 minutes
+    pause:
+     minutes: 4
+
+  - name: TASK 16 - Check if all the systems responding to ssh
+    local_action:
+     module: wait_for
+          host={{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}
+          port=22
+          search_regex=OpenSSH
+          delay=15
+          timeout=300
+          state=started
+    ignore_errors: no
+
+  - name: TASK 17 - Sending email on completion OS patching
+    mail:
+     subject: 'Automated OS patching for {{ ansible_hostname }} is completed now.'
+     body: 'Automated OS patching for {{ ansible_hostname }} is completed now.'
+     charset: utf8
+    delegate_to: localhost
+    tags: email
