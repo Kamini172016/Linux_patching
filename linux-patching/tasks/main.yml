@@ -68,7 +68,7 @@
      - /bin/netstat -rn >> /tmp/PatchingLogs/netstat-rn.out
      - /sbin/ifconfig -a >> /tmp/PatchingLogs/ifconfig-a.out
      - cp -p /etc/sysctl.conf /tmp/PatchingLogs/sysctl.out
-     ignore_errors: yes
+    # ignore_errors: yes
 
 #  - name: Compressing directory /tmp/PatchingLogs into /tmp/PatchingLogs.tgz
    # tags: runthis
