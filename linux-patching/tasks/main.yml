@@ -21,7 +21,7 @@
      msg: "repository not found on {{ ansible_hostname }}"
     when: repo_status.stdout != "Repository found"
     tags: repocheck
-   # ignore_errors: no
+    ignore_errors: no
 
   - name: TASK 4 - Verify web/database processes are not running
     shell: if ps -eaf | egrep 'apache|http|nginx|mysql|postgresql|mariadb'|grep -v grep > /dev/null ;then echo 'process_running';else echo 'process_not_running';fi
@@ -32,7 +32,7 @@
   - name: TASK 5 - Decision point to start patching
     fail: msg="{{ inventory_hostname }} have running Application. Please stop application processes first, then attempt patching."
     when: app_process_check.stdout == "process_running"
-   # ignore_errors: no
+    ignore_errors: no
  #   tags: runthis
 
   - name: TASK 6 - Creating temporary directory for backup of config files
@@ -50,7 +50,6 @@
 #     - mkdir /tmp/PatchingLogs
      - hostname >> /tmp/PatchingLogs/hostname.out
      - uname -a >> /tmp/PatchingLogs/uname.out
-     - cat /etc/redhat-release >> /tmp/PatchingLogs/redhat-release.out
      - uptime >> /tmp/PatchingLogs/uptime.out
      - cp -p /etc/hosts /tmp/PatchingLogs/hosts.out
      - /bin/df -h >> /tmp/PatchingLogs/df-h.out
@@ -69,6 +68,7 @@
      - /bin/netstat -rn >> /tmp/PatchingLogs/netstat-rn.out
      - /sbin/ifconfig -a >> /tmp/PatchingLogs/ifconfig-a.out
      - cp -p /etc/sysctl.conf /tmp/PatchingLogs/sysctl.out
+     ignore_errors: yes
 
 #  - name: Compressing directory /tmp/PatchingLogs into /tmp/PatchingLogs.tgz
    # tags: runthis
@@ -79,7 +79,7 @@
 
   - name: TASK 8 - Ensure / /var /usr /opt /tmp have free space greater than 20%
    # tags: runthis
-  #  ignore_errors: no
+   ignore_errors: no
     assert:
      that:
      - mount.size_available > mount.size_total|float * 0.19
